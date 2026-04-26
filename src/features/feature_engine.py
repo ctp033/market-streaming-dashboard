@@ -5,10 +5,16 @@ from datetime import datetime, timezone, timedelta
 import numpy as np
 from confluent_kafka import Consumer, Producer, KafkaException
 
+from src.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 BOOTSTRAP_SERVERS = "localhost:9092"
 
 TRADE_TOPIC = "market.trades.raw"
 FEATURE_TOPIC = "market.features.trade_activity"
+REPLAY_TOPIC = "market.trades.replay"
+DLQ_TOPIC = "market.errors.dlq"
 
 consumer = Consumer({
     "bootstrap.servers": BOOTSTRAP_SERVERS,
@@ -171,6 +177,22 @@ def compute_and_publish_features(trade):
     publish_feature(symbol, feature)
     print(f"Published trade feature: {feature}")
 
+def send_to_dlq(original_msg, error_message):
+    bad_event = {
+        "error": str(error_message),
+        "raw_value": original_msg.value().decode("utf-8", errors="replace"),
+        "topic": original_msg.topic(),
+        "partition": original_msg.partition(),
+        "offset": original_msg.offset(),
+        "failed_at": now_utc().isoformat(),
+    }
+
+    producer.produce(
+        DLQ_TOPIC,
+        value=json.dumps(bad_event).encode("utf-8"),
+    )
+    producer.poll(0)
+
 
 def handle_message(msg):
     trade = json.loads(msg.value().decode("utf-8"))
@@ -188,27 +210,28 @@ def handle_message(msg):
 
 
 def main():
-    consumer.subscribe([TRADE_TOPIC])
-    print("Trade feature engine running. Press Ctrl+C to stop.")
+    consumer.subscribe([TRADE_TOPIC, REPLAY_TOPIC])
+    logger.info("Trade feature engine running.")
+    
 
-    try:
-        while True:
-            msg = consumer.poll(1.0)
+    while True:
+        msg = consumer.poll(1.0)
 
-            if msg is None:
-                continue
+        if msg is None:
+            continue
 
-            if msg.error():
-                raise KafkaException(msg.error())
+        if msg.error():
+            raise KafkaException(msg.error())
 
+        try:
             handle_message(msg)
+        except Exception as e:
+            logger.exception(f"Failed to process message: {e}")
+            send_to_dlq(msg, e)
 
-    except KeyboardInterrupt:
-        print("\nStopping trade feature engine...")
-
-    finally:
-        consumer.close()
-        producer.flush()
+        finally:
+            consumer.close()
+            producer.flush()
 
 
 if __name__ == "__main__":

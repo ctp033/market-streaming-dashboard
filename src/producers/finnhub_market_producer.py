@@ -6,6 +6,10 @@ from confluent_kafka import Producer
 from dotenv import load_dotenv
 from websocket import WebSocketApp
 
+from src.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 load_dotenv()
 
 BOOTSTRAP_SERVERS = "localhost:9092"
@@ -137,7 +141,8 @@ def main():
         on_close=on_close,
     )
 
-    print("Starting Finnhub trade producer. Press Ctrl+C to stop.")
+    logger.info("Starting Finnhub trade producer. Press Ctrl+C to stop.")
+
 
     try:
         ws.run_forever()
