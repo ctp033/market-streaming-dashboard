@@ -1,0 +1,91 @@
+quant-kafka-pipeline/
+│
+├── README.md
+├── docker-compose.yml
+├── .env
+├── requirements.txt
+├── pyproject.toml
+├── Makefile
+│
+├── config/
+│   ├── app_config.yaml
+│   ├── kafka_config.yaml
+│   └── symbols.yaml
+│
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── replay/
+│
+├── docs/
+│   ├── architecture.md
+│   ├── topic_design.md
+│   ├── schemas.md
+│   └── runbook.md
+│
+├── infra/
+│   ├── kafka/
+│   │   └── init_topics.sh
+│   ├── postgres/
+│   │   └── init.sql
+│   └── monitoring/
+│       └── prometheus.yml
+│
+├── src/
+│   ├── common/
+│   │   ├── logger.py
+│   │   ├── settings.py
+│   │   ├── schemas.py
+│   │   ├── time_utils.py
+│   │   └── kafka_utils.py
+│   │
+│   ├── producers/
+│   │   └── polygon_ws_producer.py
+│   │
+│   ├── consumers/
+│   │   ├── raw_sink_consumer.py
+│   │   ├── feature_engine_consumer.py
+│   │   ├── feature_sink_consumer.py
+│   │   └── replay_producer.py
+│   │
+│   ├── features/
+│   │   ├── rolling_windows.py
+│   │   ├── vwap.py
+│   │   ├── volatility.py
+│   │   ├── returns.py
+│   │   ├── spread.py
+│   │   └── imbalance.py
+│   │
+│   ├── storage/
+│   │   ├── parquet_writer.py
+│   │   ├── postgres_writer.py
+│   │   └── duckdb_writer.py
+│   │
+│   ├── services/
+│   │   ├── market_data_service.py
+│   │   ├── feature_service.py
+│   │   └── health_service.py
+│   │
+│   └── api/
+│       └── app.py
+│
+├── notebooks/
+│   ├── 01_validate_raw_data.ipynb
+│   ├── 02_feature_exploration.ipynb
+│   └── 03_simple_signal_backtest.ipynb
+│
+├── dashboards/
+│   └── streamlit_app.py
+│
+├── tests/
+│   ├── test_schemas.py
+│   ├── test_vwap.py
+│   ├── test_returns.py
+│   ├── test_volatility.py
+│   └── test_pipeline_smoke.py
+│
+└── scripts/
+    ├── run_producer.sh
+    ├── run_consumers.sh
+    ├── seed_replay_data.sh
+    └── create_topics.sh
