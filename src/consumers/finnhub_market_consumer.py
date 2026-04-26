@@ -1,6 +1,10 @@
 import json
 from confluent_kafka import Consumer, KafkaException
 
+from src.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 BOOTSTRAP_SERVERS = "localhost:9092"
 FEATURE_TOPIC = "market.features.trade_activity"
 
@@ -52,8 +56,7 @@ def print_feature(feature, msg):
 
 def main():
     consumer.subscribe([FEATURE_TOPIC])
-    print(f"Listening for trade features on topic: {FEATURE_TOPIC}")
-    print("Press Ctrl+C to stop.")
+    logger.info("Trade feature consumer running.")
 
     try:
         while True:
