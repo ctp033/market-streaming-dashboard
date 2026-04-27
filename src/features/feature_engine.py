@@ -12,9 +12,11 @@ logger = get_logger(__name__)
 BOOTSTRAP_SERVERS = "localhost:9092"
 
 TRADE_TOPIC = "market.trades.raw"
+MOCK_TRADE_TOPIC = "market.trades.mock"
 FEATURE_TOPIC = "market.features.trade_activity"
 REPLAY_TOPIC = "market.trades.replay"
 DLQ_TOPIC = "market.errors.dlq"
+TRADE_INPUT_TOPICS = [TRADE_TOPIC, MOCK_TRADE_TOPIC, REPLAY_TOPIC]
 
 consumer = Consumer({
     "bootstrap.servers": BOOTSTRAP_SERVERS,
@@ -210,28 +212,31 @@ def handle_message(msg):
 
 
 def main():
-    consumer.subscribe([TRADE_TOPIC, REPLAY_TOPIC])
-    logger.info("Trade feature engine running.")
-    
+    consumer.subscribe(TRADE_INPUT_TOPICS)
+    logger.info(f"Trade feature engine running. Consuming from: {TRADE_INPUT_TOPICS}")
 
-    while True:
-        msg = consumer.poll(1.0)
+    try:
+        while True:
+            msg = consumer.poll(1.0)
 
-        if msg is None:
-            continue
+            if msg is None:
+                continue
 
-        if msg.error():
-            raise KafkaException(msg.error())
+            if msg.error():
+                raise KafkaException(msg.error())
 
-        try:
-            handle_message(msg)
-        except Exception as e:
-            logger.exception(f"Failed to process message: {e}")
-            send_to_dlq(msg, e)
+            try:
+                handle_message(msg)
+            except Exception as e:
+                logger.exception(f"Failed to process message: {e}")
+                send_to_dlq(msg, e)
 
-        finally:
-            consumer.close()
-            producer.flush()
+    except KeyboardInterrupt:
+        print("\nStopping trade feature engine...")
+
+    finally:
+        consumer.close()
+        producer.flush()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+confluent-kafka
+pandas
+plotly
+python-dotenv
+streamlit
+streamlit-autorefresh
+websocket-client
